@@ -348,7 +348,14 @@ func expectDS(response *http.Response, expected ...int) ([]byte, error) {
 func cloneRecords(records []AppendRecord) []AppendRecord {
 	out := make([]AppendRecord, len(records))
 	for i, record := range records {
-		out[i] = AppendRecord{Body: append([]byte(nil), record.Body...), Headers: record.Headers, Timestamp: record.Timestamp, ContentType: record.ContentType}
+		var headers map[string]string
+		if record.Headers != nil {
+			headers = make(map[string]string, len(record.Headers))
+			for name, value := range record.Headers {
+				headers[name] = value
+			}
+		}
+		out[i] = AppendRecord{Body: append([]byte(nil), record.Body...), Headers: headers, Timestamp: record.Timestamp, ContentType: record.ContentType}
 	}
 	return out
 }
