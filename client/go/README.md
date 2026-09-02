@@ -56,3 +56,9 @@ Run the live suite against a Pico server:
 ```sh
 PICOMQ_INTEGRATION=1 PICOMQ_ENDPOINT=http://127.0.0.1:4437 go test ./...
 ```
+
+For a listener running the Durable Streams protocol:
+
+```sh
+PICOMQ_DS_INTEGRATION=1 PICOMQ_DS_ENDPOINT=http://127.0.0.1:4437 go test ./...
+```
