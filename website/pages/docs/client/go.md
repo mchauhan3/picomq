@@ -66,4 +66,4 @@ Errors can be inspected with `errors.As` into `*picomq.ClientError` or classifie
 
 ## Protocol differences
 
-Listing, trimming, record headers, and identified producers are Pico-specific. Durable Streams appends exactly one raw record per request. Pico starts at `"0"`; Durable Streams begins at `"-1"` and also supports the `"now"` position.
+The protocol-neutral `Client` interface is the union of the shared client surface. Operations without a Durable Streams equivalent, such as `List`, return a structured `unsupported` error. Trimming, record headers, and identified producers are Pico-specific stream extensions. Durable Streams appends exactly one raw record per request. Pico starts at `"0"`; Durable Streams begins at `"-1"` and also supports the `"now"` position.

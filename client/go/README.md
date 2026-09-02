@@ -40,6 +40,8 @@ func main() {
 
 All network operations accept `context.Context`. Positions are opaque strings; continue reads using the `Next` value returned by the server.
 
+`Connect` returns the union `Client` interface for applications that select a protocol dynamically. Unsupported protocol operations return a structured `ClientError` with kind `ErrorUnsupported`.
+
 Use `Records` for record-only finite or long-poll consumption. Use `Subscribe` when SSE data and control events, reconnection, and `Last-Event-ID` resumption are required.
 
 ## Development

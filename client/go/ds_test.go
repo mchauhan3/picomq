@@ -2,6 +2,7 @@ package picomq
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 
@@ -32,5 +33,15 @@ var _ = ginkgo.Describe("Durable Streams client", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(page.Next).To(Equal("offset-2"))
 		Expect(page.Records[0].Body).To(Equal([]byte("message")))
+	})
+
+	ginkgo.It("reports unsupported union operations as structured errors", func() {
+		client, err := NewDurableStreams("http://127.0.0.1:4437")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = client.List(context.Background(), "", 0)
+		Expect(IsKind(err, ErrorUnsupported)).To(BeTrue())
+		var clientError *ClientError
+		Expect(errors.As(err, &clientError)).To(BeTrue())
+		Expect(clientError.Code).To(Equal("unsupported"))
 	})
 })

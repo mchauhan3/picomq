@@ -98,6 +98,10 @@ func (c *DurableStreamsClient) Read(ctx context.Context, name, from string, opti
 	return
 }
 
+func (c *DurableStreamsClient) List(context.Context, string, uint64) (StreamListing, error) {
+	return StreamListing{}, unsupported("the Durable Streams protocol does not support stream listing; use the Pico protocol")
+}
+
 func (c *DurableStreamsClient) Close(ctx context.Context, name string) (next string, err error) {
 	err = c.core.run(ctx, func() error {
 		h := make(http.Header)
