@@ -377,6 +377,7 @@ impl S3StreamService {
             schema_name: command.schema_name.clone(),
             schema_validate: command.schema_validate,
             kafka_topic: topic.clone(),
+            retention_ms: command.retention_ms,
         };
         let stored = self
             .kv_client
@@ -1758,6 +1759,7 @@ fn config_matches(entry: &RegistryEntry, command: &CreateCommand) -> bool {
         && entry.schema_name == command.schema_name
         && entry.schema_validate == command.schema_validate
         && (command.kafka_topic.is_none() || command.kafka_topic == entry.kafka_topic)
+        && entry.retention_ms == command.retention_ms
 }
 
 fn deadline_of(ttl_seconds: Option<u64>, expires_at_ms: Option<i64>) -> i64 {
@@ -2077,6 +2079,7 @@ fn to_meta(name: &str, entry: &RegistryEntry, start: u64, next: u64, submitted: 
         external_id: entry.external_id,
         schema_name: entry.schema_name.clone(),
         kafka_topic: entry.kafka_topic.clone(),
+        retention_ms: entry.retention_ms,
     }
 }
 
@@ -2121,6 +2124,7 @@ mod tests {
             schema_name: None,
             schema_validate: false,
             kafka_topic: None,
+            retention_ms: None,
         }
     }
 

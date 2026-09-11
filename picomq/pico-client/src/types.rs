@@ -28,6 +28,7 @@ pub struct StreamInfo {
     pub closed: bool,
     pub ttl_seconds: Option<u64>,
     pub expires_at: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone)]

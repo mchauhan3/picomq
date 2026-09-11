@@ -104,6 +104,7 @@ impl PicoClient {
             closed: head.closed,
             ttl_seconds: head.ttl_seconds,
             expires_at: head.expires_at,
+            retention_ms: head.retention_ms,
         }))
     }
 
@@ -168,6 +169,7 @@ impl PicoClient {
                     closed: entry.closed,
                     ttl_seconds: entry.ttl_seconds,
                     expires_at: entry.expires_at,
+                    retention_ms: entry.retention_ms,
                 })
                 .collect(),
             has_more: listing.has_more,

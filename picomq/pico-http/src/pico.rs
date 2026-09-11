@@ -25,9 +25,9 @@ use picomq_protocol::pico::{
     E_CONFLICT, E_DURABILITY, E_FENCED, E_MATCH_FAILED, E_NOT_FOUND, E_SCHEMA_VIOLATION,
     E_SEQUENCE_GAP, ErrorBody, FORMAT_BINARY, FORMAT_JSON, FORMAT_RAW, H_CLOSED, H_CURSOR,
     H_EXPECTED_SEQ, H_EXPIRES_AT, H_KAFKA_TOPIC, H_KEY, H_MATCH_SEQ, H_NEXT_SEQ, H_PRODUCER_EPOCH,
-    H_PRODUCER_ID, H_PRODUCER_SEQ, H_RECEIVED_SEQ, H_SCHEMA, H_SCHEMA_VALIDATE, H_START_SEQ,
-    H_TIMESTAMP, H_TRIM_SEQ, H_TTL, H_UP_TO_DATE, LIVE_LONG_POLL, LIVE_SSE, Listing, Q_BYTES,
-    Q_COUNT, Q_CURSOR, Q_FORMAT, Q_LIMIT, Q_LIVE, Q_PREFIX, Q_SEQ, Q_START_AFTER, SEQ_NOW,
+    H_PRODUCER_ID, H_PRODUCER_SEQ, H_RECEIVED_SEQ, H_RETENTION_MS, H_SCHEMA, H_SCHEMA_VALIDATE,
+    H_START_SEQ, H_TIMESTAMP, H_TRIM_SEQ, H_TTL, H_UP_TO_DATE, LIVE_LONG_POLL, LIVE_SSE, Listing,
+    Q_BYTES, Q_COUNT, Q_CURSOR, Q_FORMAT, Q_LIMIT, Q_LIVE, Q_PREFIX, Q_SEQ, Q_START_AFTER, SEQ_NOW,
     StreamEntry, sse_control_event, sse_data_event,
 };
 use picomq_protocol::record::{
@@ -227,6 +227,8 @@ impl PicoFrontend {
             .filter(|v| !v.is_empty())
             .unwrap_or(DEFAULT_CT)
             .to_owned();
+        let retention_ms =
+            parse_strict_u64_header(headers, H_RETENTION_MS, "invalid Pico-Retention-Ms")?;
         let result = self
             .service
             .create(CreateCommand {
@@ -245,6 +247,7 @@ impl PicoFrontend {
                 kafka_topic: header_str(headers, H_KAFKA_TOPIC)
                     .filter(|s| !s.is_empty())
                     .map(str::to_owned),
+                retention_ms: retention_ms,
             })
             .await?;
         let meta = result.meta;
@@ -418,6 +421,7 @@ impl PicoFrontend {
                         closed: meta.closed,
                         ttl_seconds: meta.ttl_seconds,
                         expires_at: meta.expires_at_ms.map(format_instant),
+                        retention_ms: meta.retention_ms,
                     }
                 })
                 .collect(),
@@ -792,6 +796,9 @@ fn write_meta(response: &mut Response, meta: &StreamMeta) {
     }
     if let Some(topic) = &meta.kafka_topic {
         set_header(response, H_KAFKA_TOPIC, topic);
+    }
+    if let Some(retention_ms) = &meta.retention_ms {
+        set_header(response, H_RETENTION_MS, &retention_ms.to_string());
     }
 }
 

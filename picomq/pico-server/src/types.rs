@@ -154,6 +154,7 @@ pub struct CreateCommand {
     pub schema_name: Option<String>,
     pub schema_validate: bool,
     pub kafka_topic: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 impl CreateCommand {
@@ -170,6 +171,7 @@ impl CreateCommand {
             schema_name: None,
             schema_validate: false,
             kafka_topic: None,
+            retention_ms: None,
         }
     }
 
@@ -323,6 +325,7 @@ pub struct StreamMeta {
     pub external_id: [u8; 16],
     pub schema_name: Option<String>,
     pub kafka_topic: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone)]

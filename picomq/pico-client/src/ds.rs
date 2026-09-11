@@ -58,6 +58,7 @@ impl DsClient {
             closed: head.closed,
             ttl_seconds: head.ttl_seconds,
             expires_at: head.expires_at,
+            retention_ms: head.retention_ms,
         }))
     }
 

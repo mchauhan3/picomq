@@ -24,9 +24,9 @@ use picomq_auth::{Audience, Authorizer};
 use picomq_protocol::ds::{
     H_PRODUCER_EPOCH, H_PRODUCER_EXPECTED_SEQ, H_PRODUCER_ID, H_PRODUCER_RECEIVED_SEQ,
     H_PRODUCER_SEQ, H_STREAM_CLOSED, H_STREAM_CURSOR, H_STREAM_EXPIRES_AT, H_STREAM_NEXT_OFFSET,
-    H_STREAM_SCHEMA, H_STREAM_SCHEMA_VALIDATE, H_STREAM_SEQ, H_STREAM_SSE_DATA_ENCODING,
-    H_STREAM_TTL, H_STREAM_UP_TO_DATE, LIVE_LONG_POLL, LIVE_SSE, OFFSET_NOW, Q_CURSOR, Q_LIVE,
-    Q_OFFSET, SseEncoder, encode_json_array, split_body,
+    H_STREAM_RETENTION_MS, H_STREAM_SCHEMA, H_STREAM_SCHEMA_VALIDATE, H_STREAM_SEQ,
+    H_STREAM_SSE_DATA_ENCODING, H_STREAM_TTL, H_STREAM_UP_TO_DATE, LIVE_LONG_POLL, LIVE_SSE,
+    OFFSET_NOW, Q_CURSOR, Q_LIVE, Q_OFFSET, SseEncoder, encode_json_array, split_body,
 };
 use picomq_protocol::mime::{is_json, mime_of};
 use picomq_server::ownership::OwnershipService;
@@ -228,6 +228,11 @@ impl DsFrontend {
                     .map(str::to_owned),
                 schema_validate: truthy(headers, H_STREAM_SCHEMA_VALIDATE),
                 kafka_topic: None,
+                retention_ms: parse_strict_u64_header(
+                    headers,
+                    H_STREAM_RETENTION_MS,
+                    "invalid Stream-Retention-Ms",
+                )?,
             })
             .await?;
         let meta = result.meta;
@@ -332,6 +337,13 @@ impl DsFrontend {
         }
         if let Some(schema_name) = &meta.schema_name {
             set_header(&mut response, H_STREAM_SCHEMA, schema_name);
+        }
+        if let Some(retention_ms) = &meta.retention_ms {
+            set_header(
+                &mut response,
+                H_STREAM_RETENTION_MS,
+                &retention_ms.to_string(),
+            );
         }
         Ok(response)
     }

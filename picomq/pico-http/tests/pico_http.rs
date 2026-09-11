@@ -524,3 +524,31 @@ async fn remote_owner_redirects() {
     let list = http.get(format!("{base_url}/")).send().await.unwrap();
     assert_eq!(list.status(), 200);
 }
+
+#[tokio::test]
+async fn retention_create_and_readback() {
+    let server = picomq_server().await;
+    let http = client();
+
+    let retention_url = format!("{}/options/retention", server.base_url);
+    let created = http
+        .put(&retention_url)
+        .header("Content-Type", "text/plain")
+        .header("Pico-Retention-Ms", "200")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(created.status(), 201);
+
+    let head = http.head(&retention_url).send().await.unwrap();
+    assert_eq!(head.headers()["Pico-Retention-Ms"], "200");
+
+    let changed = http
+        .put(&retention_url)
+        .header("Content-Type", "text/plain")
+        .header("Pico-Retention-Ms", "300")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(changed.status(), 409);
+}

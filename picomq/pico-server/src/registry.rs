@@ -46,6 +46,8 @@ pub struct RegistryEntry {
     /// Kafka topic this stream answers to. `None` means it has no topic (its
     /// name could not be derived and no alias was set, or it was released).
     pub kafka_topic: Option<String>,
+    /// Duration past which records will be trimmed.
+    pub retention_ms: Option<u64>,
 }
 
 impl RegistryEntry {
@@ -121,6 +123,8 @@ impl RegistryEntry {
         put_str(&mut buf, self.schema_name.as_deref().unwrap_or(""));
         buf.put_u8(self.schema_validate as u8);
         put_str(&mut buf, self.kafka_topic.as_deref().unwrap_or(""));
+        buf.put_u8(self.retention_ms.is_some() as u8);
+        buf.put_u64(self.retention_ms.unwrap_or(0));
         buf.freeze()
     }
 
@@ -128,7 +132,7 @@ impl RegistryEntry {
         let corrupt = |m: String| ServiceError::with_message(ErrorKind::BadRequest, None, false, m);
         let mut buf = bytes;
         let version = get_u8(&mut buf)?;
-        if version != ENTRY_VERSION {
+        if version != 1 && version != ENTRY_VERSION {
             return Err(corrupt(format!("unknown registry entry version {version}")));
         }
         let stream_id = get_i64(&mut buf)? as u64;
@@ -203,6 +207,15 @@ impl RegistryEntry {
         let schema_name = Some(get_str(&mut buf)?).filter(|s| !s.is_empty());
         let schema_validate = get_u8(&mut buf)? == 1;
         let kafka_topic = Some(get_str(&mut buf)?).filter(|s| !s.is_empty());
+
+        let retention_ms = if version == 1 {
+            None
+        } else {
+            let retention_flag = get_u8(&mut buf)? == 1;
+            let retention_raw = get_u64(&mut buf)?;
+            retention_flag.then_some(retention_raw)
+        };
+
         Ok(Self {
             stream_id,
             content_type,
@@ -219,11 +232,12 @@ impl RegistryEntry {
             schema_name,
             schema_validate,
             kafka_topic,
+            retention_ms,
         })
     }
 }
 
-const ENTRY_VERSION: u8 = 1;
+const ENTRY_VERSION: u8 = 2;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProducerDecision {
@@ -298,6 +312,11 @@ fn get_i32(buf: &mut &[u8]) -> Result<i32, ServiceError> {
 fn get_i64(buf: &mut &[u8]) -> Result<i64, ServiceError> {
     ensure(buf, 8)?;
     Ok(buf.get_i64())
+}
+
+fn get_u64(buf: &mut &[u8]) -> Result<u64, ServiceError> {
+    ensure(buf, 8)?;
+    Ok(buf.get_u64())
 }
 
 fn get_str(buf: &mut &[u8]) -> Result<String, ServiceError> {
@@ -383,6 +402,7 @@ mod tests {
             schema_name: None,
             schema_validate: false,
             kafka_topic: Some("orders.eu".into()),
+            retention_ms: None,
         }
     }
 
@@ -402,12 +422,28 @@ mod tests {
                 schema_name: Some("orders".into()),
                 schema_validate: true,
                 kafka_topic: None,
+                retention_ms: Some(2000),
                 ..entry()
             },
         ] {
             let encoded = e.encode();
             assert_eq!(RegistryEntry::decode(&encoded).unwrap(), e);
         }
+    }
+
+    #[test]
+    fn decodes_version_1_without_retention() {
+        let expected = entry();
+        let mut bytes = expected.encode().to_vec();
+        assert_eq!(bytes[0], 2);
+        // Version 1 has the same layout except for the trailing retention
+        // presence flag (one byte) and duration (eight bytes).
+        bytes[0] = 1;
+        bytes.truncate(bytes.len() - 9);
+
+        let decoded = RegistryEntry::decode(&bytes).unwrap();
+        assert_eq!(decoded.retention_ms, None);
+        assert_eq!(decoded, expected);
     }
 
     #[test]

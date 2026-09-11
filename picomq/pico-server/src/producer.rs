@@ -246,6 +246,7 @@ mod tests {
             schema_name: None,
             schema_validate: false,
             kafka_topic: None,
+            retention_ms: None,
         }
     }
 

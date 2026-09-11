@@ -19,6 +19,7 @@ pub const H_STREAM_SCHEMA_VALIDATE: &str = "Stream-Schema-Validate";
 pub const H_STREAM_CURSOR: &str = "Stream-Cursor";
 pub const H_STREAM_SSE_DATA_ENCODING: &str = "Stream-SSE-Data-Encoding";
 pub const H_STREAM_SEQ: &str = "Stream-Seq";
+pub const H_STREAM_RETENTION_MS: &str = "Stream-Retention-Ms";
 pub const H_PRODUCER_ID: &str = "Producer-Id";
 pub const H_PRODUCER_EPOCH: &str = "Producer-Epoch";
 pub const H_PRODUCER_SEQ: &str = "Producer-Seq";
@@ -169,6 +170,7 @@ pub struct CreateRequest<'a> {
     pub schema: Option<&'a str>,
     pub schema_validate: bool,
     pub initial_body: Bytes,
+    pub retention_ms: Option<u64>,
 }
 
 impl<'a> CreateRequest<'a> {
@@ -182,6 +184,7 @@ impl<'a> CreateRequest<'a> {
             schema: None,
             schema_validate: false,
             initial_body: Bytes::new(),
+            retention_ms: None,
         }
     }
 
@@ -193,6 +196,7 @@ impl<'a> CreateRequest<'a> {
             .flag(H_STREAM_CLOSED, self.closed)
             .header_opt(H_STREAM_SCHEMA, self.schema)
             .flag(H_STREAM_SCHEMA_VALIDATE, self.schema_validate)
+            .header_opt(H_STREAM_RETENTION_MS, self.retention_ms)
             .body(self.initial_body.clone())
     }
 }
@@ -292,6 +296,7 @@ pub struct HeadResponse {
     pub ttl_seconds: Option<u64>,
     pub expires_at: Option<String>,
     pub schema: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 impl HeadResponse {
@@ -306,6 +311,7 @@ impl HeadResponse {
             ttl_seconds: header_u64(headers, H_STREAM_TTL),
             expires_at: header_string(headers, H_STREAM_EXPIRES_AT),
             schema: header_string(headers, H_STREAM_SCHEMA),
+            retention_ms: header_u64(headers, H_STREAM_RETENTION_MS),
         })
     }
 }

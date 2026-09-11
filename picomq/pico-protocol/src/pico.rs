@@ -33,6 +33,7 @@ pub const H_RECEIVED_SEQ: &str = "Pico-Received-Seq";
 pub const H_KEY: &str = "Pico-Key";
 /// The stream's Kafka topic alias (create request and metadata responses).
 pub const H_KAFKA_TOPIC: &str = "Pico-Kafka-Topic";
+pub const H_RETENTION_MS: &str = "Pico-Retention-Ms";
 pub const CT_BATCH_JSON: &str = "application/vnd.picomq.batch+json";
 pub const CT_BATCH_BINARY: &str = "application/vnd.picomq.batch";
 pub const CT_JSON: &str = "application/json";
@@ -127,6 +128,7 @@ pub struct StreamEntry {
     pub closed: bool,
     pub ttl_seconds: Option<u64>,
     pub expires_at: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -155,6 +157,10 @@ impl Listing {
                 if let Some(expires_at) = &entry.expires_at {
                     node.insert("expires_at".into(), json!(expires_at));
                 }
+                if let Some(retention_ms) = &entry.retention_ms {
+                    node.insert("retention_ms".into(), json!(retention_ms));
+                }
+
                 Value::Object(node)
             })
             .collect();
@@ -178,6 +184,7 @@ impl Listing {
                         closed: node["closed"].as_bool().unwrap_or(false),
                         ttl_seconds: node["ttl"].as_u64(),
                         expires_at: node["expires_at"].as_str().map(str::to_owned),
+                        retention_ms: node["retention_ms"].as_u64(),
                     })
                     .collect()
             })
@@ -223,6 +230,7 @@ pub struct CreateRequest<'a> {
     pub schema: Option<&'a str>,
     pub schema_validate: bool,
     pub kafka_topic: Option<&'a str>,
+    pub retention_ms: Option<u64>,
 }
 
 impl<'a> CreateRequest<'a> {
@@ -236,6 +244,7 @@ impl<'a> CreateRequest<'a> {
             schema: None,
             schema_validate: false,
             kafka_topic: None,
+            retention_ms: None,
         }
     }
 
@@ -248,6 +257,7 @@ impl<'a> CreateRequest<'a> {
             .header_opt(H_SCHEMA, self.schema)
             .flag(H_SCHEMA_VALIDATE, self.schema_validate)
             .header_opt(H_KAFKA_TOPIC, self.kafka_topic)
+            .header_opt(H_RETENTION_MS, self.retention_ms)
     }
 }
 
@@ -379,6 +389,7 @@ pub struct HeadResponse {
     pub expires_at: Option<String>,
     pub schema: Option<String>,
     pub kafka_topic: Option<String>,
+    pub retention_ms: Option<u64>,
 }
 
 impl HeadResponse {
@@ -395,6 +406,7 @@ impl HeadResponse {
             expires_at: header_string(headers, H_EXPIRES_AT),
             schema: header_string(headers, H_SCHEMA),
             kafka_topic: header_string(headers, H_KAFKA_TOPIC),
+            retention_ms: header_u64(headers, H_RETENTION_MS),
         })
     }
 }
@@ -594,6 +606,7 @@ mod tests {
                 closed: false,
                 ttl_seconds: Some(60),
                 expires_at: Some("2026-01-01T00:00:00Z".to_owned()),
+                retention_ms: Some(20000),
             }],
             has_more: true,
         };

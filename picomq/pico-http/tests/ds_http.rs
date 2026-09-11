@@ -20,6 +20,35 @@ fn client() -> reqwest::Client {
         .unwrap()
 }
 
+#[tokio::test]
+async fn retention_create_and_readback() {
+    let server = ds_server().await;
+    let http = client();
+    let retention_url = format!("{}/ds/retention", server.base_url);
+
+    let created = http
+        .put(&retention_url)
+        .header("Content-Type", "text/plain")
+        .header("Stream-Retention-Ms", "200")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(created.status(), 201);
+
+    let head = http.head(&retention_url).send().await.unwrap();
+    assert_eq!(head.status(), 200);
+    assert_eq!(head.headers()["Stream-Retention-Ms"], "200");
+
+    let changed = http
+        .put(&retention_url)
+        .header("Content-Type", "text/plain")
+        .header("Stream-Retention-Ms", "300")
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(changed.status(), 409);
+}
+
 /// Create/append/read/head/close/delete with the exact spec headers.
 #[tokio::test]
 async fn ds_protocol_end_to_end() {
